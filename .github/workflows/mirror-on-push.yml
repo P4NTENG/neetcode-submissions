@@ -1,4 +1,4 @@
-name: Mirror to org repo on push
+name: Mirror to coala-study insung folder
 
 on:
   push:
@@ -11,9 +11,35 @@ jobs:
       - name: Checkout source repo
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0
+          path: source
 
-      - name: Push to target org repo
+      - name: Checkout target repo
+        uses: actions/checkout@v4
+        with:
+          repository: coala-study/coding-test
+          token: ${{ secrets.MIRROR_TOKEN }}
+          path: target
+
+      - name: Sync source into insung/ folder
         run: |
-          git remote add target https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/{조직}/{대상리포}.git
-          git push target main:main
+          rsync -av --delete \
+            --exclude='.git' \
+            --exclude='.github' \
+            source/ target/insung/
+
+      - name: Commit and push if changed
+        run: |
+          cd target
+          git config user.name "neetcode-mirror-bot"
+          git config user.email "actions@github.com"
+          git add insung/
+          if git diff --cached --quiet; then
+            echo "No changes to commit"
+            exit 0
+          fi
+          git commit -m "Sync NeetCode submissions"
+          for i in 1 2 3; do
+            git pull --rebase origin main && git push origin main && break
+            echo "Retry $i..."
+            sleep 5
+          done
