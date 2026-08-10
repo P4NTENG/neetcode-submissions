@@ -1,0 +1,19 @@
+name: Mirror to org repo on push
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  mirror:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout source repo
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Push to target org repo
+        run: |
+          git remote add target https://x-access-token:${{ secrets.MIRROR_TOKEN }}@github.com/{조직}/{대상리포}.git
+          git push target main:main
