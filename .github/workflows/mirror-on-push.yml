@@ -27,6 +27,15 @@ jobs:
             --exclude='.github' \
             source/ target/insung/
 
+      - name: Get source commit message
+        id: source_msg
+        run: |
+          cd source
+          MSG=$(git log -1 --pretty=%B)
+          echo "message<<EOF" >> $GITHUB_OUTPUT
+          echo "$MSG" >> $GITHUB_OUTPUT
+          echo "EOF" >> $GITHUB_OUTPUT
+
       - name: Commit and push if changed
         run: |
           cd target
@@ -37,7 +46,7 @@ jobs:
             echo "No changes to commit"
             exit 0
           fi
-          git commit -m "Sync NeetCode submissions"
+          git commit -m "${{ steps.source_msg.outputs.message }}"
           for i in 1 2 3; do
             git pull --rebase origin main && git push origin main && break
             echo "Retry $i..."
