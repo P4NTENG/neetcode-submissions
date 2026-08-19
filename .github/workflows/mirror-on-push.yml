@@ -22,7 +22,7 @@ jobs:
 
       - name: Sync source into insung/ folder
         run: |
-          rsync -av --delete \
+            rsync -av \
             --exclude='.git' \
             --exclude='.github' \
             source/ target/insung/
@@ -31,10 +31,7 @@ jobs:
         id: source_msg
         run: |
           cd source
-          MSG=$(git log -1 --pretty=%B)
-          echo "message<<EOF" >> $GITHUB_OUTPUT
-          echo "$MSG" >> $GITHUB_OUTPUT
-          echo "EOF" >> $GITHUB_OUTPUT
+          git log -1 --pretty=%B > ../commit_msg.txt
 
       - name: Commit and push if changed
         run: |
@@ -42,13 +39,17 @@ jobs:
           git config user.name "neetcode-mirror-bot"
           git config user.email "actions@github.com"
           git add insung/
+          
           if git diff --cached --quiet; then
             echo "No changes to commit"
             exit 0
           fi
-          git commit -m "${{ steps.source_msg.outputs.message }}"
+          
+          git commit -F ../commit_msg.txt
+          
           for i in 1 2 3; do
-            git pull --rebase origin main && git push origin main && break
-            echo "Retry $i..."
-            sleep 5
+            git push origin main && break
+            echo "Push failed, pulling latest main without rebase... (Retry $i)"
+            git pull origin main --no-rebase -m "merge: sync target main"
+            sleep 3
           done
